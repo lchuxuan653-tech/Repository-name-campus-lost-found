@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>校园失物招领AI助手 v2</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="container">
+    <!-- 头部 -->
+    <header class="header">
+      <h1>🎓 校园失物招领 AI 助手</h1>
+      <p class="subtitle">智能匹配 · 同义词理解 · 防冒领验证</p>
+      <div class="header-stats">
+        <span id="statTotal">共 0 条信息</span>
+        <span id="statMatches">🔗 0 组匹配</span>
+      </div>
+    </header>
+
+    <!-- 提交表单 -->
+    <section class="submit-section card">
+      <h2>📝 发布信息</h2>
+      <form id="submitForm" enctype="multipart/form-data">
+        <div class="type-toggle">
+          <button type="button" class="type-btn active" data-type="lost">😢 我丢了东西</button>
+          <button type="button" class="type-btn" data-type="found">🎉 我捡到东西</button>
+        </div>
+
+        <div class="form-group">
+          <label for="description">详细描述 * <span class="hint">（描述越详细，AI匹配越准确）</span></label>
+          <textarea id="description" name="description" rows="4"
+            placeholder="请详细描述物品特征，例如：&#10;• 物品类型（耳机、手机、钱包、AirPods等）&#10;• 颜色、品牌、型号&#10;• 特殊标记（划痕、贴纸、挂饰、手机壳图案等）&#10;• 大概丢失/捡到的时间和地点"
+            required></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="image">上传图片（可选，可大幅提升匹配精度）</label>
+          <div class="upload-area" id="uploadArea">
+            <input type="file" id="image" name="image" accept="image/*">
+            <div class="upload-placeholder">📷 点击或拖拽上传图片</div>
+            <img id="imagePreview" class="image-preview" style="display: none;">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="contact">联系方式</label>
+            <input type="text" id="contact" name="contact" placeholder="QQ / 微信 / 手机号">
+          </div>
+          <div class="form-group">
+            <label for="submitter">你的名字</label>
+            <input type="text" id="submitter" name="submitter" placeholder="昵称即可">
+          </div>
+        </div>
+
+        <button type="submit" class="submit-btn">🤖 AI 分析并发布</button>
+      </form>
+
+      <!-- AI 分析结果 -->
+      <div id="aiAnalysis" class="ai-analysis" style="display: none;">
+        <h3>🔍 AI 特征提取</h3>
+        <div id="analysisContent"></div>
+      </div>
+    </section>
+
+    <!-- 实时匹配结果 -->
+    <section id="matchSection" class="match-section card" style="display: none;">
+      <div class="match-header">
+        <h2>🎯 AI 发现可能匹配！</h2>
+        <span class="match-count" id="matchCount"></span>
+      </div>
+      <div id="matchList"></div>
+    </section>
+
+    <!-- 工具栏 -->
+    <div class="toolbar card">
+      <button class="toolbar-btn primary" onclick="runGlobalMatch()">
+        🔄 全局AI重新匹配
+      </button>
+      <div class="toolbar-spacer"></div>
+      <input type="text" id="searchInput" class="search-input" placeholder="🔍 搜索物品..." oninput="filterItems()">
+    </div>
+
+    <!-- 标签页切换 -->
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="lost-list">
+        ❓ 失物招领 <span class="tab-count" id="lostCount">0</span>
+      </button>
+      <button class="tab-btn" data-tab="found-list">
+        🎁 拾物认领 <span class="tab-count" id="foundCount">0</span>
+      </button>
+      <button class="tab-btn" data-tab="match-list">
+        🔗 AI匹配记录 <span class="tab-count highlight" id="matchTabCount">0</span>
+      </button>
+    </div>
+
+    <!-- 失物列表 -->
+    <section id="lost-list" class="items-section card tab-content active">
+      <div class="list-header">
+        <h3>寻物中</h3>
+      </div>
+      <div id="lostItems" class="items-grid"></div>
+    </section>
+
+    <!-- 拾物列表 -->
+    <section id="found-list" class="items-section card tab-content">
+      <div class="list-header">
+        <h3>待认领</h3>
+      </div>
+      <div id="foundItems" class="items-grid"></div>
+    </section>
+
+    <!-- 匹配记录列表 -->
+    <section id="match-list" class="items-section card tab-content">
+      <div class="list-header">
+        <h3>所有AI匹配结果</h3>
+        <span class="match-filter">
+          <select id="matchLevelFilter" onchange="filterMatches()">
+            <option value="all">全部等级</option>
+            <option value="high">高度匹配 (≥55分)</option>
+            <option value="medium">可能匹配 (35-54分)</option>
+            <option value="low">弱相关 (20-34分)</option>
+          </select>
+        </span>
+      </div>
+      <div id="matchRecords" class="matches-grid"></div>
+    </section>
+  </div>
+
+  <!-- 验证弹窗 -->
+  <div id="verifyModal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>✅ 身份验证</h3>
+        <button class="modal-close" onclick="closeVerifyModal()">✕</button>
+      </div>
+      <p class="modal-hint">为防止冒领，请回答以下问题（基于失主描述生成）：</p>
+      <div id="verifyQuestions"></div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeVerifyModal()">取消</button>
+        <button class="btn-primary" onclick="submitVerification()">提交验证</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 匹配详情弹窗 -->
+  <div id="matchDetailModal" class="modal" style="display: none;">
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <h3 id="matchDetailTitle">匹配详情</h3>
+        <button class="modal-close" onclick="closeMatchDetail()">✕</button>
+      </div>
+      <div id="matchDetailContent"></div>
+    </div>
+  </div>
+
+  <!-- Toast 提示 -->
+  <div id="toast" class="toast" style="display: none;"></div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
