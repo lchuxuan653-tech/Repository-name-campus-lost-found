@@ -620,9 +620,14 @@ app.patch('/api/items/:id/status', (req, res) => {
   res.json({ success: true, item });
 });
 
-// 启动服务器
-app.listen(PORT, () => {
-  console.log(`\n🚀 校园失物招领 AI 助手 v2 已启动`);
-  console.log(`   📡 地址：http://localhost:${PORT}`);
-  console.log(`   🤖 AI引擎：同义词映射 + 语义模糊匹配 + 多级置信度\n`);
-});
+// 启动服务器（本地开发用）
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`\n🚀 校园失物招领 AI 助手 v2 已启动`);
+    console.log(`   📡 地址：http://localhost:${PORT}`);
+    console.log(`   🤖 AI引擎：同义词映射 + 语义模糊匹配 + 多级置信度\n`);
+  });
+}
+
+// 导出给 Vercel 使用
+module.exports = app;

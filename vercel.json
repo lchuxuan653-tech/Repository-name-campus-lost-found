@@ -1,0 +1,1 @@
+{"version": 2, "name": "campus-lost-found", "builds": [{"src": "server.js", "use": "@vercel/node"}], "routes": [{"src": "/(.*)", "dest": "server.js"}]}
